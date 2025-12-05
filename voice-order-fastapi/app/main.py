@@ -36,43 +36,60 @@ from app.stt import transcribe_audio
 app = FastAPI(title="Voice Order API (FastAPI)")
 
 # CORS 설정: 여러 오리진 허용
-# 프론트엔드 URL을 명시적으로 하드코딩으로 추가 (필수)
-allowed_origins = [
-    "https://foodordersystem-front.onrender.com",  # 배포된 프론트엔드 (필수)
+# 1. 배포된 프론트엔드 URL을 최우선으로 하드코딩 (필수 - Render 배포 환경)
+DEPLOYED_FRONTEND_URL = "https://foodordersystem-front.onrender.com"
+allowed_origins = [DEPLOYED_FRONTEND_URL]
+
+# 2. FRONTEND_URL 환경변수에서 프론트엔드 URL 가져오기 (동적 설정)
+frontend_url_env = os.environ.get("FRONTEND_URL", "").strip()
+if frontend_url_env:
+    if not frontend_url_env.startswith("http://") and not frontend_url_env.startswith("https://"):
+        frontend_url_env = f"https://{frontend_url_env}"
+    if frontend_url_env not in allowed_origins:
+        allowed_origins.append(frontend_url_env)
+
+# 3. VOICE_ORDER_CLIENT_ORIGIN 환경변수에서 추가 오리진 가져오기
+client_origin_str = settings.VOICE_ORDER_CLIENT_ORIGIN
+if client_origin_str:
+    origins_from_settings = client_origin_str.split(",") if "," in client_origin_str else [client_origin_str]
+    for origin in origins_from_settings:
+        origin = origin.strip()
+        if origin:
+            # http:// 또는 https://가 없으면 추가
+            if not origin.startswith("http://") and not origin.startswith("https://"):
+                origin = f"http://{origin}"
+            if origin not in allowed_origins:
+                allowed_origins.append(origin)
+
+# 4. 로컬 개발용 기본 오리진 추가
+local_origins = [
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "http://127.0.0.1:8080",
 ]
+for local_origin in local_origins:
+    if local_origin not in allowed_origins:
+        allowed_origins.append(local_origin)
 
-# .env 파일에서 설정된 오리진 추가
-allowed_origins_str = settings.VOICE_ORDER_CLIENT_ORIGIN
-if allowed_origins_str:
-    origins_from_env = allowed_origins_str.split(",") if "," in allowed_origins_str else [allowed_origins_str]
-    origins_from_env = [origin.strip() for origin in origins_from_env if origin.strip()]
-    allowed_origins.extend(origins_from_env)
+# 5. 배포된 프론트엔드 URL 최종 확인 (이중 안전장치)
+if DEPLOYED_FRONTEND_URL not in allowed_origins:
+    allowed_origins.insert(0, DEPLOYED_FRONTEND_URL)  # 맨 앞에 추가
 
-# FRONTEND_URL 환경변수에서 프론트엔드 URL 가져오기
-frontend_url = os.environ.get("FRONTEND_URL", "").strip()
-if frontend_url:
-    allowed_origins.append(frontend_url)
-
-# http:// 또는 https://가 없으면 추가
-for i, origin in enumerate(allowed_origins):
-    if origin and not origin.startswith("http://") and not origin.startswith("https://"):
-        allowed_origins[i] = f"http://{origin}"
-
-# localhost:8080과 127.0.0.1:8080은 기본으로 추가 (Spring Boot 기본 포트)
-if "http://localhost:8080" not in allowed_origins:
-    allowed_origins.append("http://localhost:8080")
-if "http://127.0.0.1:8080" not in allowed_origins:
-    allowed_origins.append("http://127.0.0.1:8080")
-
-# 배포된 프론트엔드 URL이 확실히 포함되도록 다시 확인 및 추가 (이중 확인)
-if "https://foodordersystem-front.onrender.com" not in allowed_origins:
-    allowed_origins.append("https://foodordersystem-front.onrender.com")
-
-# 중복 제거 및 빈 문자열 필터링
+# 6. 중복 제거 및 빈 문자열 필터링
 allowed_origins = [origin for origin in allowed_origins if origin and origin.strip()]
 allowed_origins = list(dict.fromkeys(allowed_origins))
 
-print(f"[OK] CORS 허용 오리진: {allowed_origins}")
+# CORS 설정 로그 출력 (디버깅용)
+print("=" * 60)
+print("[CORS 설정]")
+print(f"  배포된 프론트엔드 URL: {DEPLOYED_FRONTEND_URL}")
+print(f"  FRONTEND_URL 환경변수: {frontend_url_env or '(설정되지 않음)'}")
+print(f"  VOICE_ORDER_CLIENT_ORIGIN: {client_origin_str or '(기본값 사용)'}")
+print(f"  최종 허용 오리진 목록 ({len(allowed_origins)}개):")
+for i, origin in enumerate(allowed_origins, 1):
+    marker = "★" if origin == DEPLOYED_FRONTEND_URL else " "
+    print(f"    {i}. {marker} {origin}")
+print("=" * 60)
 print(f"[OK] LLM Provider: {settings.VOICE_ORDER_LLM_PROVIDER}")
 print(f"[OK] 서버 포트: {settings.VOICE_ORDER_SERVER_PORT}")
 print(

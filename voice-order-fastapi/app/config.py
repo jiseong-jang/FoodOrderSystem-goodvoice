@@ -39,7 +39,11 @@ class Settings(BaseSettings):
     VOICE_ORDER_SERVER_PORT: int = 5001
     VOICE_ORDER_CLIENT_ORIGIN: str = Field(
         default="http://localhost:8080,http://localhost:3000,http://127.0.0.1:8080",
-        description="Origin allowed to call this API. Multiple origins can be separated by commas."
+        description=(
+            "Origin allowed to call this API. Multiple origins can be separated by commas. "
+            "Note: For Render deployment, set this via environment variable or use FRONTEND_URL. "
+            "The deployed frontend URL (https://foodordersystem-front.onrender.com) is automatically added in main.py."
+        )
     )
     
     # Hugging Face 추가 설정
