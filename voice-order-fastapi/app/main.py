@@ -36,33 +36,38 @@ from app.stt import transcribe_audio
 app = FastAPI(title="Voice Order API (FastAPI)")
 
 # CORS 설정: 여러 오리진 허용 (.env 파일에서 로드)
+# 배포된 프론트엔드 URL을 가장 먼저 하드코딩으로 추가 (확실하게 포함)
+allowed_origins = ["https://foodordersystem-front.onrender.com"]
+
+# .env 파일에서 설정된 오리진 추가
 allowed_origins_str = settings.VOICE_ORDER_CLIENT_ORIGIN
-allowed_origins = allowed_origins_str.split(",") if "," in allowed_origins_str else [allowed_origins_str]
-allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+if allowed_origins_str:
+    origins_from_env = allowed_origins_str.split(",") if "," in allowed_origins_str else [allowed_origins_str]
+    origins_from_env = [origin.strip() for origin in origins_from_env if origin.strip()]
+    allowed_origins.extend(origins_from_env)
 
 # FRONTEND_URL 환경변수에서 프론트엔드 URL 가져오기
 frontend_url = os.environ.get("FRONTEND_URL", "").strip()
 if frontend_url:
     allowed_origins.append(frontend_url)
 
-# 배포된 프론트엔드 URL 기본 추가
-deployed_frontend = "https://foodordersystem-front.onrender.com"
-if deployed_frontend not in allowed_origins:
-    allowed_origins.append(deployed_frontend)
-
-# localhost:8080과 127.0.0.1:8080은 기본으로 추가 (Spring Boot 기본 포트)
 # http:// 또는 https://가 없으면 추가
 for i, origin in enumerate(allowed_origins):
-    if not origin.startswith("http://") and not origin.startswith("https://"):
+    if origin and not origin.startswith("http://") and not origin.startswith("https://"):
         allowed_origins[i] = f"http://{origin}"
 
-# Spring Boot 기본 포트 추가
+# localhost:8080과 127.0.0.1:8080은 기본으로 추가 (Spring Boot 기본 포트)
 if "http://localhost:8080" not in allowed_origins:
     allowed_origins.append("http://localhost:8080")
 if "http://127.0.0.1:8080" not in allowed_origins:
     allowed_origins.append("http://127.0.0.1:8080")
 
-# 중복 제거
+# 배포된 프론트엔드 URL이 확실히 포함되도록 다시 추가 (중복 제거 전)
+if "https://foodordersystem-front.onrender.com" not in allowed_origins:
+    allowed_origins.append("https://foodordersystem-front.onrender.com")
+
+# 중복 제거 및 빈 문자열 필터링
+allowed_origins = [origin for origin in allowed_origins if origin and origin.strip()]
 allowed_origins = list(dict.fromkeys(allowed_origins))
 
 print(f"[OK] CORS 허용 오리진: {allowed_origins}")
