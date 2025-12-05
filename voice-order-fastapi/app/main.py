@@ -36,7 +36,7 @@ from app.stt import transcribe_audio
 app = FastAPI(title="Voice Order API (FastAPI)")
 
 # CORS 설정: 여러 오리진 허용
-# 프론트엔드 URL을 명시적으로 하드코딩으로 추가
+# 프론트엔드 URL을 명시적으로 하드코딩으로 추가 (필수)
 allowed_origins = [
     "https://foodordersystem-front.onrender.com",  # 배포된 프론트엔드 (필수)
 ]
@@ -64,10 +64,9 @@ if "http://localhost:8080" not in allowed_origins:
 if "http://127.0.0.1:8080" not in allowed_origins:
     allowed_origins.append("http://127.0.0.1:8080")
 
-# 배포된 프론트엔드 URL이 확실히 포함되도록 다시 확인 및 추가
-frontend_url_deployed = "https://foodordersystem-front.onrender.com"
-if frontend_url_deployed not in allowed_origins:
-    allowed_origins.append(frontend_url_deployed)
+# 배포된 프론트엔드 URL이 확실히 포함되도록 다시 확인 및 추가 (이중 확인)
+if "https://foodordersystem-front.onrender.com" not in allowed_origins:
+    allowed_origins.append("https://foodordersystem-front.onrender.com")
 
 # 중복 제거 및 빈 문자열 필터링
 allowed_origins = [origin for origin in allowed_origins if origin and origin.strip()]
@@ -102,7 +101,7 @@ static_dir = APP_DIR / "static"
 
 
 @app.get("/health")
-def health_check() -> dict:
+def health_check():
     """Health check endpoint for frontend."""
     return {"status": "ok"}
 
