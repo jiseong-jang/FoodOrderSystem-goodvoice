@@ -35,9 +35,11 @@ from app.stt import transcribe_audio
 
 app = FastAPI(title="Voice Order API (FastAPI)")
 
-# CORS 설정: 여러 오리진 허용 (.env 파일에서 로드)
-# 배포된 프론트엔드 URL을 가장 먼저 하드코딩으로 추가 (확실하게 포함)
-allowed_origins = ["https://foodordersystem-front.onrender.com"]
+# CORS 설정: 여러 오리진 허용
+# 프론트엔드 URL을 명시적으로 하드코딩으로 추가
+allowed_origins = [
+    "https://foodordersystem-front.onrender.com",  # 배포된 프론트엔드 (필수)
+]
 
 # .env 파일에서 설정된 오리진 추가
 allowed_origins_str = settings.VOICE_ORDER_CLIENT_ORIGIN
@@ -62,9 +64,10 @@ if "http://localhost:8080" not in allowed_origins:
 if "http://127.0.0.1:8080" not in allowed_origins:
     allowed_origins.append("http://127.0.0.1:8080")
 
-# 배포된 프론트엔드 URL이 확실히 포함되도록 다시 추가 (중복 제거 전)
-if "https://foodordersystem-front.onrender.com" not in allowed_origins:
-    allowed_origins.append("https://foodordersystem-front.onrender.com")
+# 배포된 프론트엔드 URL이 확실히 포함되도록 다시 확인 및 추가
+frontend_url_deployed = "https://foodordersystem-front.onrender.com"
+if frontend_url_deployed not in allowed_origins:
+    allowed_origins.append(frontend_url_deployed)
 
 # 중복 제거 및 빈 문자열 필터링
 allowed_origins = [origin for origin in allowed_origins if origin and origin.strip()]
@@ -80,9 +83,10 @@ print(
 )
 
 # CORS 미들웨어 설정 - 프론트엔드 URL을 명시적으로 포함
+# allow_origins에 "https://foodordersystem-front.onrender.com"이 포함되어 있음
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,  # "https://foodordersystem-front.onrender.com" 포함됨
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
