@@ -79,9 +79,10 @@ print(
     f"(preset={getattr(settings, 'VOICE_ORDER_MODEL_PRESET', None)})"
 )
 
+# CORS 미들웨어 설정 - 프론트엔드 URL을 명시적으로 포함
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=allowed_origins,  # "https://foodordersystem-front.onrender.com" 포함됨
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -97,7 +98,8 @@ static_dir = APP_DIR / "static"
 
 
 @app.get("/health")
-async def health() -> dict:
+def health_check() -> dict:
+    """Health check endpoint for frontend."""
     return {"status": "ok"}
 
 
