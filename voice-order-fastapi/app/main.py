@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -39,6 +40,16 @@ allowed_origins_str = settings.VOICE_ORDER_CLIENT_ORIGIN
 allowed_origins = allowed_origins_str.split(",") if "," in allowed_origins_str else [allowed_origins_str]
 allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
 
+# FRONTEND_URL 환경변수에서 프론트엔드 URL 가져오기
+frontend_url = os.environ.get("FRONTEND_URL", "").strip()
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
+# 배포된 프론트엔드 URL 기본 추가
+deployed_frontend = "https://foodordersystem-front.onrender.com"
+if deployed_frontend not in allowed_origins:
+    allowed_origins.append(deployed_frontend)
+
 # localhost:8080과 127.0.0.1:8080은 기본으로 추가 (Spring Boot 기본 포트)
 # http:// 또는 https://가 없으면 추가
 for i, origin in enumerate(allowed_origins):
@@ -50,6 +61,9 @@ if "http://localhost:8080" not in allowed_origins:
     allowed_origins.append("http://localhost:8080")
 if "http://127.0.0.1:8080" not in allowed_origins:
     allowed_origins.append("http://127.0.0.1:8080")
+
+# 중복 제거
+allowed_origins = list(dict.fromkeys(allowed_origins))
 
 print(f"[OK] CORS 허용 오리진: {allowed_origins}")
 print(f"[OK] LLM Provider: {settings.VOICE_ORDER_LLM_PROVIDER}")
