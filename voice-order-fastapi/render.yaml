@@ -30,4 +30,6 @@ services:
         sync: false
       - key: VOICE_ORDER_ASSUMED_DELIVERY_DATE
         sync: false
+      - key: FRONTEND_URL
+        sync: false
 
