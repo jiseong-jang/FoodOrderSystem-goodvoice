@@ -4,26 +4,20 @@ services:
     name: mrdinner-voice-api
     runtime: python
     plan: free
-    rootDir: voice-order-fastapi
+    # rootDir 줄을 삭제했습니다! (현재 위치가 root이므로 불필요)
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      # CORS 설정 (프론트엔드 URL 허용)
-      # Note: 배포된 프론트엔드 URL은 main.py에서 자동으로 추가되지만,
-      # 추가 오리진이 필요한 경우 이 변수에 설정하세요.
       - key: VOICE_ORDER_CLIENT_ORIGIN
         sync: false
-      # FRONTEND_URL: 동적으로 프론트엔드 URL을 설정 (main.py에서 자동으로 CORS에 추가됨)
       - key: FRONTEND_URL
         sync: false
-      # LLM 모델 설정
       - key: VOICE_ORDER_MODEL_PRESET
         sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: VOICE_ORDER_CHAT_MODEL
         sync: false
-      # Hugging Face 설정
       - key: VOICE_ORDER_HF_ENDPOINT
         sync: false
       - key: VOICE_ORDER_HF_MODEL
@@ -36,7 +30,5 @@ services:
         sync: false
       - key: HF_TOKEN
         sync: false
-      # 기타 설정
       - key: VOICE_ORDER_ASSUMED_DELIVERY_DATE
         sync: false
-
