@@ -1,0 +1,32 @@
+services:
+  # 음성인식 API 서비스 (Python FastAPI)
+  - type: web
+    name: mrdinner-voice-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: VOICE_ORDER_CLIENT_ORIGIN
+        sync: false
+      - key: VOICE_ORDER_MODEL_PRESET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: VOICE_ORDER_CHAT_MODEL
+        sync: false
+      - key: VOICE_ORDER_HF_ENDPOINT
+        sync: false
+      - key: VOICE_ORDER_HF_MODEL
+        sync: false
+      - key: VOICE_ORDER_HF_TOKEN
+        sync: false
+      - key: VOICE_ORDER_HF_BASE_ENDPOINT
+        sync: false
+      - key: VOICE_ORDER_HF_BASE_MODEL
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: VOICE_ORDER_ASSUMED_DELIVERY_DATE
+        sync: false
+
