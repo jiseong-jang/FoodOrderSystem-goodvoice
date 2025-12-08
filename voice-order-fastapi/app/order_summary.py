@@ -38,23 +38,38 @@ def _build_menu_item_guide() -> str:
 
     # Group menu items by normalized menu identifier (name or ID)
     menu_components = {}
+    # Collect all available items (for additional items not in default menu)
+    # Include items with prices for menu composition, but also track ALL items for additional requests
+    all_available_items = set()
+    
     for item in catalog.menu_items:
         menu_key = _extract_menu_key(item, ("menu_id", "menu_name", "menu"))
         item_name = item.get("item_name", "").strip()
 
-        # Skip non-food items (decorations, napkins, etc.) - only track items with prices
-        if not item.get("unit_price"):
-            continue
+        # Track ALL items (including those without prices) for additional requests
+        if item_name:
+            all_available_items.add(item_name)
 
+        # For menu composition, include items with prices
+        has_price = item.get("unit_price")
+        
         if not menu_key:
             continue
 
-        if menu_key not in menu_components:
-            menu_components[menu_key] = []
-        menu_components[menu_key].append(item_name)
+        # Include items with prices in menu components
+        if has_price:
+            if menu_key not in menu_components:
+                menu_components[menu_key] = []
+            menu_components[menu_key].append(item_name)
 
     # Build guide text for each menu
-    guide_lines = ["For the menuItems line, describe final quantities per component using comma-separated `항목=수량` pairs. Reflect any changes the customer requested. Use these component sets:"]
+    guide_lines = [
+        "For the menuItems line, describe final quantities per component using comma-separated `항목=수량` pairs. Reflect any changes the customer requested.",
+        "",
+        "IMPORTANT: If the customer requested additional items that are NOT in the menu's default composition, you MUST still include them in menuItems. Use the item names from the available items list below.",
+        "",
+        "Default component sets for each menu:"
+    ]
 
     for menu in catalog.menus:
         menu_key = _extract_menu_key(menu, ("menu_id", "name"))
@@ -64,7 +79,25 @@ def _build_menu_item_guide() -> str:
             components = ", ".join(menu_components[menu_key])
             guide_lines.append(f"- {menu_name}: {components}")
 
-    guide_lines.append("If multiple 세트가 함께 주문되면 각 세트에 맞는 항목을 모두 포함하고, 언급되지 않은 항목은 `항목=미확인`으로 남기세요.")
+    guide_lines.append("")
+    guide_lines.append("CRITICAL RULES for menuItems:")
+    guide_lines.append("1. Each orderItem's menuItems MUST contain:")
+    guide_lines.append("   - Items from that specific menu's default composition (listed above)")
+    guide_lines.append("   - Additional items the customer explicitly requested for THAT menu, BUT ONLY if they are in the list below")
+    guide_lines.append("")
+    guide_lines.append("2. AVAILABLE ITEMS that can be added to any menu (ONLY these items can be added as additional items):")
+    if all_available_items:
+        # Sort for consistency
+        sorted_items = sorted(all_available_items)
+        guide_lines.append(", ".join(sorted_items))
+    else:
+        guide_lines.append("(No additional items available)")
+    guide_lines.append("")
+    guide_lines.append("3. IMPORTANT: If the customer requests an item that is NOT in the available items list above, DO NOT include it in menuItems. Only use items that exist in the system.")
+    guide_lines.append("4. Do NOT automatically include items from OTHER menus' default compositions unless the customer explicitly requested them.")
+    guide_lines.append("   - Example: If customer ordered 발렌타인 디너 and 잉글리시 디너 separately, 발렌타인 디너's menuItems should NOT automatically include 에그 스크램블 or 베이컨 unless the customer explicitly said '발렌타인 디너에 베이컨 추가해주세요'.")
+    guide_lines.append("5. If multiple 세트가 함께 주문되면 각 세트에 맞는 항목을 모두 포함하고, 언급되지 않은 항목은 `항목=미확인`으로 남기세요.")
+    guide_lines.append("6. When parsing quantities, use the actual quantity requested (e.g., 와인(병)=2 means 2 bottles, not the default 1).")
 
     return "\n".join(guide_lines)
 
@@ -121,7 +154,12 @@ def build_summary_prompt(history: Iterable[ChatMessage], final_message: str, ass
                     "menuItems = <comma separated list of item=quantity>",
                     "deliveryTime = <ISO 8601 datetime or null>",
                     "",
-                    f"Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss) for deliveryTime. Assume today is {assumed_date} and normalize any inferred delivery date to that day unless the customer explicitly requested another date.",
+                    f"Use ISO 8601 format (YYYY-MM-DDTHH:mm:ss) for deliveryTime. Assume today is {assumed_date}.",
+                    f"IMPORTANT for date conversion:",
+                    f"- When customer says '내일' (tomorrow), convert to {assumed_date} + 1 day",
+                    f"- When customer says '모레' (day after tomorrow), convert to {assumed_date} + 2 days",
+                    f"- When customer says '오늘' (today), use {assumed_date}",
+                    f"- Always calculate relative dates correctly from the assumed date.",
                     'Do not add extra lines or commentary. Use "null" (without quotes) for missing information.',
                     "When the conversation was in Korean, keep the values in Korean; otherwise mirror the customer language.",
                     menu_guide,
